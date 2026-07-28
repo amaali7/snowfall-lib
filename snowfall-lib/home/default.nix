@@ -28,6 +28,8 @@
     hasSuffix
     ;
 
+  is-x86_64-darwin = system: system == "x86_64-darwin";
+
   user-homes-root = snowfall-lib.fs.get-snowfall-file "homes";
   user-modules-root = snowfall-lib.fs.get-snowfall-file "modules";
 in {
@@ -97,7 +99,8 @@ in {
       lib = home-lib;
     in
       assert assertMsg (user-inputs ? home-manager) "In order to create home-manager configurations, you must include `home-manager` as a flake input.";
-      assert assertMsg ((user-metadata.host != "") || !(hasInfix "@" name)) "Snowfall Lib homes must be named with the format: user@system"; {
+      assert assertMsg ((user-metadata.host != "") || !(hasInfix "@" name)) "Snowfall Lib homes must be named with the format: user@system";
+      assert assertMsg (!is-x86_64-darwin system) "x86_64-darwin is not supported by this snowfall-lib."; {
         inherit channelName system;
 
         output = "homeConfigurations";
@@ -187,7 +190,10 @@ in {
     ## ```
     #@ Attrs -> Attrs
     create-homes = homes: let
-      targets = snowfall-lib.fs.get-directories user-homes-root;
+      targets =
+        builtins.filter
+        (target: !(is-x86_64-darwin (builtins.baseNameOf target)))
+        (snowfall-lib.fs.get-directories user-homes-root);
       target-homes-metadata = concatMap get-target-homes-metadata targets;
 
       user-home-modules = snowfall-lib.module.create-modules {

@@ -16,7 +16,16 @@
     core-inputs-libs
     user-inputs-libs
     snowfall-top-level-lib
-    {snowfall = snowfall-lib;}
+    {
+      snowfall = snowfall-lib;
+      # nixpkgs still exports deprecated `fold` as a warning-wrapped `foldr`.
+      fold = core-inputs.nixpkgs.lib.foldr;
+      lists =
+        core-inputs.nixpkgs.lib.lists
+        // {
+          fold = core-inputs.nixpkgs.lib.foldr;
+        };
+    }
   ];
 
   user-lib-root = snowfall-lib.fs.get-snowfall-file "lib";

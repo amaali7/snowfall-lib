@@ -5,7 +5,11 @@
   snowfall-config,
 }: let
   inherit (builtins) dirOf baseNameOf;
-  inherit (core-inputs.nixpkgs.lib) assertMsg fix hasInfix concatMap foldl optionals singleton;
+  inherit (core-inputs.nixpkgs.lib) assertMsg fix hasInfix hasPrefix concatMap foldl optionals singleton;
+
+  # Intel macOS is not supported by this library.
+  is-x86_64-darwin = target:
+    target == "x86_64-darwin" || hasPrefix "x86_64-darwin-" target;
 
   virtual-systems = import ./virtual-systems.nix;
 
@@ -247,22 +251,23 @@ in {
         then user-inputs.home-manager.darwinModules.home-manager
         else user-inputs.home-manager.nixosModules.home-manager;
       home-manager-modules = [home-manager-module] ++ home-system-modules;
-    in {
-      inherit channelName system builder output;
+    in
+      assert assertMsg (!(is-x86_64-darwin system || is-x86_64-darwin target)) "x86_64-darwin is not supported by this snowfall-lib."; {
+        inherit channelName system builder output;
 
-      modules = [path] ++ modules ++ (optionals (user-inputs ? home-manager) home-manager-modules);
+        modules = [path] ++ modules ++ (optionals (user-inputs ? home-manager) home-manager-modules);
 
-      specialArgs =
-        specialArgs
-        // {
-          inherit target system systems lib;
-          host = name;
+        specialArgs =
+          specialArgs
+          // {
+            inherit target system systems lib;
+            host = name;
 
-          virtual = (get-virtual-system-type target) != "";
-          inputs = snowfall-lib.flake.without-src user-inputs;
-          namespace = snowfall-config.namespace;
-        };
-    };
+            virtual = (get-virtual-system-type target) != "";
+            inputs = snowfall-lib.flake.without-src user-inputs;
+            namespace = snowfall-config.namespace;
+          };
+      };
 
     ## Create all available systems.
     ## Example Usage:
@@ -278,7 +283,10 @@ in {
       systems ? {},
       homes ? {},
     }: let
-      targets = snowfall-lib.fs.get-directories user-systems-root;
+      targets =
+        builtins.filter
+        (target: !(is-x86_64-darwin (baseNameOf target)))
+        (snowfall-lib.fs.get-directories user-systems-root);
       target-systems-metadata = concatMap get-target-systems-metadata targets;
       user-nixos-modules = snowfall-lib.module.create-modules {
         src = "${user-modules-root}/nixos";

@@ -99,6 +99,16 @@ in rec {
     namespace = snowfall-config.namespace or "internal";
     custom-flake-options = flake.without-snowfall-options full-flake-options;
     alias = full-flake-options.alias or {};
+    # flake-utils-plus defaults include x86_64-darwin; this lib does not support it.
+    supportedSystems =
+      builtins.filter
+      (system: system != "x86_64-darwin")
+      (full-flake-options.supportedSystems
+        or [
+        "aarch64-darwin"
+        "aarch64-linux"
+        "x86_64-linux"
+      ]);
     homes = snowfall-lib.home.create-homes (full-flake-options.homes or {});
     systems = snowfall-lib.system.create-systems {
       systems = full-flake-options.systems or {};
@@ -162,7 +172,7 @@ in rec {
     flake-options =
       custom-flake-options
       // {
-        inherit hosts templates;
+        inherit hosts templates supportedSystems;
         inherit (user-inputs) self;
 
         lib = snowfall-lib.internal.user-lib;
