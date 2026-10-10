@@ -92,11 +92,11 @@ core-inputs: user-options: let
       snowfall = snowfall-lib;
       # nixpkgs still exports deprecated `fold` as a warning-wrapped `foldr`.
       # Replace it so consumers (and merged input libs) do not emit eval warnings.
-      fold = core-inputs.nixpkgs.lib.foldr;
+      foldr = core-inputs.nixpkgs.lib.foldr;
       lists =
         core-inputs.nixpkgs.lib.lists
         // {
-          fold = core-inputs.nixpkgs.lib.foldr;
+          foldr = core-inputs.nixpkgs.lib.foldr;
         };
     }
   ];
